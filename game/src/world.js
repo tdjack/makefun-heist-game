@@ -1,7 +1,8 @@
 // The game's rules and state, with no drawing and no browser in it:
-// the player, patrolling guards with vision cones, detection, relics,
-// pebble distractions, lives and the exit. step() advances one fixed
-// step and returns what happened as bit flags.
+// the thief, patrolling guards with vision cones, sweeping security
+// cameras, the alarm meter, loot stashes, coin distractions, lives and
+// the getaway exit. step() advances one fixed step and returns what
+// happened as bit flags.
 import { CAMERA, COLS, FIELD, GUARD, LIVES, PEBBLES_PER_LEVEL, PLAYER, ROWS, TILE } from './config.js';
 import { LEVELS, parseLevel } from './levels.js';
 
@@ -94,7 +95,7 @@ export function createWorld() {
       || solidAtPixel(x, y - radius) || solidAtPixel(x, y + radius);
   }
 
-  // Line of sight: true when no wall or crate sits between the two points.
+  // Line of sight: true when no wall or cabinet sits between the two points.
   function lineOfSight(x0, y0, x1, y1) {
     const d = dist(x0, y0, x1, y1);
     const steps = Math.max(1, Math.ceil(d / 6));
@@ -183,7 +184,7 @@ export function createWorld() {
       if (state.pebble.timer <= 0) state.pebble = null;
     }
 
-    // Relics.
+    // Loot stashes.
     for (const r of state.relics) {
       if (!r.taken && dist(p.x, p.y, r.x, r.y) < 26) {
         r.taken = true;
@@ -225,7 +226,7 @@ export function createWorld() {
           g.pauseTimer = 0.7;
         }
       }
-      // Caught: a guard touches the player.
+      // Caught: a guard touches the thief.
       if (dist(g.x, g.y, p.x, p.y) < GUARD.radius + PLAYER.radius - 2) {
         state.lives -= 1;
         state.detection = 0;
@@ -253,7 +254,7 @@ export function createWorld() {
       if (state.detection < 40) state.alarm = false;
     }
 
-    // Exit opens only once every relic is taken.
+    // The getaway exit opens only once every loot stash is taken.
     if (relicsLeft === 0 && dist(p.x, p.y, state.exit.x, state.exit.y) < 30) {
       state.score += 250;
       if (state.levelIndex + 1 >= LEVELS.length) {

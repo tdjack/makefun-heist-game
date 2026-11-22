@@ -47,5 +47,7 @@ export function stageShot(name, world) {
   s.guards[0].x = 620; s.guards[0].y = 180; s.guards[0].facing = Math.PI / 2;
   s.guards[1].x = 340; s.guards[1].y = 460; s.guards[1].facing = -Math.PI / 2;
   s.guards[2].x = 1020; s.guards[2].y = 300; s.guards[2].facing = Math.PI;
+  if (s.cameras[0]) { s.cameras[0].facing = 1.1; }
+  if (s.cameras[1]) { s.cameras[1].facing = 2.4; }
   return { screen: SCREEN_TITLE, best: 0 };
 }

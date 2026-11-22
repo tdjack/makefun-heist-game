@@ -111,7 +111,7 @@ export const LEVELS = [
   },
 ];
 
-// Parse a level map into tiles, relics, start, exit and guard spawns.
+// Parse a level map into tiles, loot stashes, start, exit and guard spawns.
 export function parseLevel(def) {
   const walls = new Set();
   const crates = new Set();

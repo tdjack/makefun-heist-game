@@ -23,7 +23,7 @@ export const GUARD = {
   coneHalfAngle: 0.62,
   coneRange: 235,
   coneRangeLit: 285,
-  // Detection fills per second while the player is seen.
+  // Detection fills per second while the thief is seen.
   detectRate: 78,
   detectRateBush: 22,
   detectRateLit: 105,

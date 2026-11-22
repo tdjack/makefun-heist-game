@@ -1,6 +1,6 @@
 // Drawing only: the world's state and the current screen in, pixels out.
-// The 1280x720 playfield is scaled to fit the window. Vision cones are
-// raycast polygons, so cover really does cut them off.
+// The 1280x720 playfield is scaled to fit the window. Guard and camera
+// vision cones are raycast polygons, so cover really does cut them off.
 import { COLS, FIELD, FONT, GUARD, PALETTE, ROWS, TILE } from './config.js';
 
 export const SCREEN_TITLE = 'title';
@@ -84,7 +84,7 @@ export function createRenderer(canvas) {
         }
       }
     }
-    // Exit door.
+    // Getaway exit door.
     const e = state.exit;
     const open = state.relics.every((r) => r.taken);
     context.fillStyle = open ? PALETTE.exit : PALETTE.exitLocked;
@@ -115,7 +115,7 @@ export function createRenderer(canvas) {
     for (let i = 0; i <= steps; i += 1) {
       const a = guard.facing - GUARD.coneHalfAngle + (2 * GUARD.coneHalfAngle * i) / steps;
       let r = range;
-      // March out until a wall or crate blocks the ray.
+      // March out until a wall or cabinet blocks the ray.
       for (let d = 12; d <= range; d += 8) {
         const x = guard.x + Math.cos(a) * d; const y = guard.y + Math.sin(a) * d;
         const cx = Math.floor(x / TILE); const cy = Math.floor(y / TILE);
@@ -167,7 +167,7 @@ export function createRenderer(canvas) {
   }
 
   function drawActors(state) {
-    // Pebble target.
+    // Coin target.
     if (state.pebble) {
       context.strokeStyle = PALETTE.gold; context.lineWidth = 2;
       context.beginPath(); context.arc(state.pebble.x, state.pebble.y, 10 + (1.2 - state.pebble.timer) * 8, 0, Math.PI * 2); context.stroke();

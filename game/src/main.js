@@ -62,7 +62,7 @@ function runGame() {
   function winGame() {
     screen = SCREEN_WIN;
     if (world.state.score > best) { best = world.state.score; saveBest(best); }
-    announce(`Ghost. Score ${world.state.score}. Best ${best}.`);
+    announce(`Clean getaway. Score ${world.state.score}. Best ${best}.`);
   }
 
   function handleActions() {
@@ -118,6 +118,7 @@ function runGame() {
     renderer.draw(world.state, screen, best, world);
   }
 
+  // Leaving the tab pauses a running game rather than letting guards close in unseen.
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && screen === SCREEN_PLAY) { screen = SCREEN_PAUSED; announce('Paused.'); }
   });
