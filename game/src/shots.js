@@ -8,11 +8,12 @@ export function stageShot(name, world) {
   const s = world.state;
   world.reset();
   if (name === 'play') {
-    // Mid-heist: sneaking behind a cabinet, one loot taken, a guard cone
-    // sweeping just past the thief, a camera cone sweeping the vault,
-    // alarm meter half full.
+    // Mid-heist: sneaking behind a cabinet, cracking the second safe
+    // while a laser beam blinks beside the thief, a guard cone sweeping
+    // just past, a camera cone sweeping the vault, alarm meter half full.
     s.player.x = 560; s.player.y = 300; s.player.sneaking = true;
     s.relics[0].taken = true; s.score = 100; s.detection = 46;
+    s.crackTarget = s.relics[1]; s.crackProgress = 0.8;
     s.guards[0].x = 620; s.guards[0].y = 180; s.guards[0].facing = Math.PI / 2;
     s.guards[1].x = 340; s.guards[1].y = 460; s.guards[1].facing = 0;
     s.guards[2].x = 1020; s.guards[2].y = 300; s.guards[2].facing = Math.PI;

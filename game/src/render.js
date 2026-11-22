@@ -127,6 +127,41 @@ export function createRenderer(canvas) {
     return pts;
   }
 
+  function drawLasers(state) {
+    // Laser tripwires: bright red beams while live, faint dotted stubs
+    // while they blink off, so the thief can time the crossing.
+    for (const beam of state.lasers || []) {
+      context.strokeStyle = beam.live ? '#ff2d55' : 'rgba(255,45,85,0.25)';
+      context.lineWidth = beam.live ? 3 : 1.5;
+      if (!beam.live) context.setLineDash([4, 6]);
+      context.beginPath();
+      context.moveTo(beam.x1, beam.y1);
+      context.lineTo(beam.x2, beam.y2);
+      context.stroke();
+      context.setLineDash([]);
+      context.fillStyle = beam.live ? '#ff2d55' : 'rgba(255,45,85,0.4)';
+      context.beginPath(); context.arc(beam.x1, beam.y1, 4, 0, Math.PI * 2); context.fill();
+      context.beginPath(); context.arc(beam.x2, beam.y2, 4, 0, Math.PI * 2); context.fill();
+      if (beam.live) {
+        context.fillStyle = 'rgba(255,45,85,0.18)';
+        context.beginPath(); context.arc(beam.x1, beam.y1, 10, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(beam.x2, beam.y2, 10, 0, Math.PI * 2); context.fill();
+      }
+    }
+  }
+
+  function drawCrackRing(state) {
+    // Safe-cracking progress: a gold ring closing around the loot stash.
+    if (!state.crackTarget) return;
+    const target = state.crackTarget;
+    const frac = Math.min(1, state.crackProgress / 1.4);
+    context.strokeStyle = '#0d1320'; context.lineWidth = 6;
+    context.beginPath(); context.arc(target.x, target.y, 22, 0, Math.PI * 2); context.stroke();
+    context.strokeStyle = PALETTE.gold; context.lineWidth = 4;
+    context.beginPath(); context.arc(target.x, target.y, 22, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2); context.stroke();
+    text('CRACKING', target.x, target.y - 30, 13, PALETTE.gold, 'center');
+  }
+
   function drawCones(state, world) {
     // Camera cones: pink, sweeping, fixed to the wall.
     for (const cam of state.cameras || []) {
@@ -147,9 +182,9 @@ export function createRenderer(canvas) {
       context.moveTo(pts[0].x, pts[0].y);
       for (let i = 1; i < pts.length; i += 1) context.lineTo(pts[i].x, pts[i].y);
       context.closePath();
-      context.fillStyle = cam.seeing ? 'rgba(255,90,122,0.42)' : PALETTE.cameraCone;
+      context.fillStyle = state.empTimer > 0 ? 'rgba(120,130,150,0.12)' : cam.seeing ? 'rgba(255,90,122,0.42)' : PALETTE.cameraCone;
       context.fill();
-      context.strokeStyle = PALETTE.cameraConeEdge;
+      context.strokeStyle = state.empTimer > 0 ? 'rgba(120,130,150,0.4)' : PALETTE.cameraConeEdge;
       context.lineWidth = 1.5; context.stroke();
     }
     for (const g of state.guards) {
@@ -215,7 +250,7 @@ export function createRenderer(canvas) {
     context.fillStyle = '#0d1320'; context.fillRect(barX, barY, barW, barH);
     context.fillStyle = det > 60 ? PALETTE.danger : PALETTE.gold; context.fillRect(barX, barY, barW * (det / 100), barH);
     context.strokeStyle = PALETTE.muted; context.lineWidth = 1; context.strokeRect(barX, barY, barW, barH);
-    plain(`♥ ${state.lives}   ● ${state.pebbles} coins`, 24, 48, 16, PALETTE.muted, 'left');
+    plain(`♥ ${state.lives}   ● ${state.pebbles} coins   ⚡ EMP ${state.empCharges}${state.empTimer > 0 ? ' — cameras blind ' + state.empTimer.toFixed(0) + 's' : ''}`, 24, 48, 16, PALETTE.muted, 'left');
     plain(state.level.def.name + ' — grab every loot, dodge guards and cameras, reach the getaway exit', FIELD.width / 2, 48, 15, PALETTE.muted, 'center');
   }
 
@@ -254,13 +289,15 @@ export function createRenderer(canvas) {
     context.fillStyle = PALETTE.backdrop;
     context.fillRect(0, 0, FIELD.width, FIELD.height);
     drawFloor(state);
+    drawLasers(state);
     drawCones(state, world);
     drawActors(state);
+    drawCrackRing(state);
     if (screen === SCREEN_TITLE) {
       drawTitleBanner('MIDNIGHT VAULT', [
-        'One thief. Three vaults. Grab every loot, then reach the getaway exit.',
-        'WASD / arrows to move · Shift to sneak · Click to throw a coin',
-        'Stay out of the yellow guard cones and pink camera cones. Shadows hide you. Spotlights expose you.',
+        'One thief. Three vaults. Crack every safe, then reach the getaway exit.',
+        'WASD / arrows to move · Shift to sneak · Click to throw a coin · E for EMP',
+        'Dodge guard cones, camera cones and laser beams. Stand still by a safe to crack it.',
       ], 'Press Space or click to start the heist');
       return;
     }

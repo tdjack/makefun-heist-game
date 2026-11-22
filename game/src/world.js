@@ -12,6 +12,8 @@ export const EVENT_CAUGHT = 4;
 export const EVENT_LEVEL = 8;
 export const EVENT_WIN = 16;
 export const EVENT_PEBBLE = 32;
+export const EVENT_EMP = 64;
+export const EVENT_LASER = 128;
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function dist(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
@@ -29,7 +31,12 @@ export function createWorld() {
     player: { x: 60, y: 60, vx: 0, vy: 0, sneaking: false, moving: false },
     guards: [],
     cameras: [],
+    lasers: [],
     relics: [],
+    empCharges: 2,
+    empTimer: 0,
+    crackTarget: null,
+    crackProgress: 0,
     exit: { x: 0, y: 0 },
     start: { x: 60, y: 60 },
     detection: 0,
@@ -61,6 +68,15 @@ export function createWorld() {
       x: c.x * TILE + TILE / 2, y: c.y * TILE + TILE / 2,
       base: c.base, sweep: c.sweep, facing: c.base, seeing: false,
     }));
+    state.lasers = (def.lasers || []).map((l, i) => ({
+      x1: l.x1 * TILE + TILE / 2, y1: l.y1 * TILE + TILE / 2,
+      x2: l.x2 * TILE + TILE / 2, y2: l.y2 * TILE + TILE / 2,
+      period: l.period, onTime: l.on, phase: i * 0.7, live: true,
+    }));
+    state.empCharges = 2;
+    state.empTimer = 0;
+    state.crackTarget = null;
+    state.crackProgress = 0;
     state.guards = def.guards.map((g) => ({
       x: g.x * TILE + TILE / 2,
       y: g.y * TILE + TILE / 2,
@@ -142,6 +158,57 @@ export function createWorld() {
     return { seen: true, rate };
   }
 
+  // Distance from a point to a laser beam segment, in pixels.
+  function beamDistance(px, py, beam) {
+    const dx = beam.x2 - beam.x1;
+    const dy = beam.y2 - beam.y1;
+    const lenSq = dx * dx + dy * dy;
+    let t = lenSq === 0 ? 0 : ((px - beam.x1) * dx + (py - beam.y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const cx = beam.x1 + t * dx;
+    const cy = beam.y1 + t * dy;
+    return Math.hypot(px - cx, py - cy);
+  }
+
+  // A laser beam blinks on a cycle: live for onTime seconds of each period.
+  function beamLive(beam) {
+    const cycle = (state.elapsed + beam.phase) % beam.period;
+    return cycle < beam.onTime;
+  }
+
+  // Fire the EMP: cameras go blind for six seconds. Two charges per vault.
+  function fireEmp() {
+    if (state.empCharges <= 0 || state.empTimer > 0) return false;
+    state.empCharges -= 1;
+    state.empTimer = 6;
+    for (const cam of state.cameras) cam.seeing = false;
+    return true;
+  }
+
+  // Cracking a safe: stand beside a loot stash and hold still for 1.4
+  // seconds. Moving away or being spotted resets the progress.
+  function updateCracking(dt, anySeen) {
+    let near = null;
+    for (const r of state.relics) {
+      if (!r.taken && dist(state.player.x, state.player.y, r.x, r.y) < 34) { near = r; break; }
+    }
+    if (near === null || anySeen) {
+      state.crackTarget = null;
+      state.crackProgress = 0;
+      return null;
+    }
+    if (state.crackTarget !== near) { state.crackTarget = near; state.crackProgress = 0; }
+    state.crackProgress += dt;
+    if (state.crackProgress >= 1.4) {
+      near.taken = true;
+      state.score += 100;
+      state.crackTarget = null;
+      state.crackProgress = 0;
+      return near;
+    }
+    return null;
+  }
+
   function moveGuard(guard, tx, ty, speed, dt) {
     const dx = tx - guard.x;
     const dy = ty - guard.y;
@@ -184,24 +251,35 @@ export function createWorld() {
       if (state.pebble.timer <= 0) state.pebble = null;
     }
 
-    // Loot stashes.
-    for (const r of state.relics) {
-      if (!r.taken && dist(p.x, p.y, r.x, r.y) < 26) {
-        r.taken = true;
-        state.score += 100;
-        events |= EVENT_RELIC;
+    // EMP: the thief's one gadget. Press E and every camera goes blind.
+    if (input.emp && fireEmp()) events |= EVENT_EMP;
+    if (state.empTimer > 0) state.empTimer = Math.max(0, state.empTimer - dt);
+
+    // Laser tripwires: a live beam the thief touches trips the alarm.
+    for (const beam of state.lasers) {
+      beam.live = beamLive(beam);
+      if (beam.live && beamDistance(p.x, p.y, beam) < 12) {
+        state.lastSeen = { x: p.x, y: p.y };
+        events |= EVENT_LASER;
       }
     }
-    const relicsLeft = state.relics.filter((r) => !r.taken).length;
 
     // Cameras: sweep, and fill the alarm meter when the thief is in frame.
     let anySeen = false;
     let seenRate = 0;
     for (const cam of state.cameras) {
       cam.facing = cam.base + Math.sin(state.elapsed * CAMERA.sweepSpeed) * cam.sweep;
+      if (state.empTimer > 0) { cam.seeing = false; continue; }
       const s = cameraSees(cam);
       cam.seeing = s.seen;
       if (s.seen) { anySeen = true; seenRate = Math.max(seenRate, s.rate); state.lastSeen = { x: p.x, y: p.y }; }
+    }
+    // A live laser beam touching the thief trips the alarm meter.
+    for (const beam of state.lasers) {
+      if (beam.live && beamDistance(p.x, p.y, beam) < 12) {
+        anySeen = true;
+        seenRate = Math.max(seenRate, 110);
+      }
     }
 
     // Guards: see, chase, investigate, patrol.
@@ -239,6 +317,11 @@ export function createWorld() {
         return events;
       }
     }
+
+    // Safe-cracking: loot is only taken after holding still beside it.
+    const cracked = updateCracking(dt, anySeen);
+    if (cracked) events |= EVENT_RELIC;
+    const relicsLeft = state.relics.filter((r) => !r.taken).length;
 
     if (anySeen) {
       const wasAlarmed = state.alarm;

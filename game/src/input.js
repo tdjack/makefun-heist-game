@@ -15,12 +15,15 @@ export function createInput(target) {
   const keys = new Set();
   let actions = 0;
   let click = null;
+  let empQueued = false;
 
   window.addEventListener('keydown', (event) => {
     if (LEFT.has(event.code) || RIGHT.has(event.code) || UP.has(event.code) || DOWN.has(event.code)) {
       keys.add(event.code);
     } else if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') {
       keys.add(event.code);
+    } else if (event.code === 'KeyE') {
+      if (!event.repeat) empQueued = true;
     } else if (CONFIRM.has(event.code)) {
       if (!event.repeat) actions |= ACTION_CONFIRM;
     } else if (PAUSE.has(event.code)) {
@@ -45,6 +48,7 @@ export function createInput(target) {
       return { dx, dy, sneak: keys.has('ShiftLeft') || keys.has('ShiftRight') };
     },
     takeClick() { const c = click; click = null; return c; },
+    takeEmp() { const e = empQueued; empQueued = false; return e; },
     takeActions() { const taken = actions; actions = 0; return taken; },
   };
 }
