@@ -27,6 +27,7 @@ export function stageShot(name, world) {
     s.player.x = 700; s.player.y = 380;
     s.relics[0].taken = true; s.relics[1].taken = true; s.score = 200;
     s.detection = 96; s.alarm = true; s.lives = 2;
+    s.lockdown = true; s.lockdownTimer = 5;
     for (const g of s.guards) { g.mode = 'chase'; }
     s.guards[0].x = 620; s.guards[0].y = 300; s.guards[0].facing = Math.PI / 3;
     s.guards[1].x = 800; s.guards[1].y = 300; s.guards[1].facing = Math.PI * 0.7;

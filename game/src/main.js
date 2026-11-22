@@ -98,7 +98,7 @@ function runGame() {
     if (events & EVENT_SMOKE) { audio.pebble(); announce('Smoke bomb dropped. You are hidden inside the cloud.'); }
     if (events & EVENT_LASER) { audio.spotted(); announce('Laser tripped! Get out of the beam!'); }
     if (events & EVENT_PEBBLE) { audio.pebble(); announce('Coin thrown. A guard goes to look.'); }
-    if (events & EVENT_SPOTTED) { audio.spotted(); announce('Spotted! Alarm! Break line of sight!'); }
+    if (events & EVENT_SPOTTED) { audio.spotted(); announce('Spotted! Alarm! The vault is in lockdown — the exit is sealed for eight seconds. Break line of sight!'); }
     if (events & EVENT_CAUGHT) {
       audio.caught();
       if (world.state.lives <= 0) endGame();

@@ -36,6 +36,8 @@ export function createWorld() {
     relics: [],
     empCharges: 2,
     empTimer: 0,
+    lockdownTimer: 0,
+    lockdown: false,
     smokeCharges: 2,
     smokes: [],
     crackTarget: null,
@@ -78,6 +80,8 @@ export function createWorld() {
     }));
     state.empCharges = 2;
     state.empTimer = 0;
+    state.lockdownTimer = 0;
+    state.lockdown = false;
     state.smokeCharges = 2;
     state.smokes = [];
     state.crackTarget = null;
@@ -190,6 +194,24 @@ export function createWorld() {
     state.empTimer = 6;
     for (const cam of state.cameras) cam.seeing = false;
     return true;
+  }
+
+  // Lockdown: the moment the alarm trips, the vault seals its getaway
+  // exit for eight seconds. The thief must survive the chase, break
+  // line of sight, and wait for the doors to reopen before escaping.
+  // While the vault is sealed the exit door shows a red countdown.
+  function triggerLockdown() {
+    state.lockdown = true;
+    state.lockdownTimer = 8;
+  }
+
+  function updateLockdown(dt, anySeen) {
+    if (!state.lockdown) return;
+    state.lockdownTimer -= dt;
+    if (state.lockdownTimer <= 0) {
+      state.lockdown = false;
+      state.lockdownTimer = 0;
+    }
   }
 
   // Smoke bomb: a grey cloud that hides the thief from every cone.
@@ -367,6 +389,7 @@ export function createWorld() {
       state.loseSight = 0;
       if (state.detection >= 100 && !wasAlarmed) {
         state.alarm = true;
+        triggerLockdown();
         for (const g of state.guards) g.mode = 'chase';
         events |= EVENT_SPOTTED;
       }
@@ -375,8 +398,11 @@ export function createWorld() {
       if (state.detection < 40) state.alarm = false;
     }
 
-    // The getaway exit opens only once every loot stash is taken.
-    if (relicsLeft === 0 && dist(p.x, p.y, state.exit.x, state.exit.y) < 30) {
+    updateLockdown(dt, anySeen);
+
+    // The getaway exit opens only once every loot stash is taken,
+    // and never while the vault is in lockdown after an alarm.
+    if (!state.lockdown && relicsLeft === 0 && dist(p.x, p.y, state.exit.x, state.exit.y) < 30) {
       state.score += 250;
       if (state.levelIndex + 1 >= LEVELS.length) {
         state.won = true;

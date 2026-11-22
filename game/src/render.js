@@ -84,15 +84,26 @@ export function createRenderer(canvas) {
         }
       }
     }
-    // Getaway exit door.
+    // Getaway exit door. A sealed vault shows a red lockdown countdown
+    // instead of the green exit, so the thief knows to wait it out.
     const e = state.exit;
     const open = state.relics.every((r) => r.taken);
-    context.fillStyle = open ? PALETTE.exit : PALETTE.exitLocked;
-    context.fillRect(e.x - 18, e.y - 18, 36, 36);
-    context.fillStyle = '#0b1f14';
-    context.fillRect(e.x - 11, e.y - 18, 22, 36);
-    if (open) { context.fillStyle = '#eafff3'; text('EXIT', e.x, e.y - 26, 15, PALETTE.exit, 'center'); }
-    else { context.fillStyle = PALETTE.muted; text('LOCKED', e.x, e.y - 26, 12, PALETTE.muted, 'center'); }
+    if (state.lockdown) {
+      context.fillStyle = '#7a1f18';
+      context.fillRect(e.x - 18, e.y - 18, 36, 36);
+      context.fillStyle = '#2a0a08';
+      context.fillRect(e.x - 11, e.y - 18, 22, 36);
+      context.fillStyle = '#ff6b5e';
+      text('SEALED', e.x, e.y - 26, 12, '#ff6b5e', 'center');
+      text(`${Math.ceil(state.lockdownTimer)}s`, e.x, e.y + 30, 13, '#ff6b5e', 'center');
+    } else {
+      context.fillStyle = open ? PALETTE.exit : PALETTE.exitLocked;
+      context.fillRect(e.x - 18, e.y - 18, 36, 36);
+      context.fillStyle = '#0b1f14';
+      context.fillRect(e.x - 11, e.y - 18, 22, 36);
+      if (open) { context.fillStyle = '#eafff3'; text('EXIT', e.x, e.y - 26, 15, PALETTE.exit, 'center'); }
+      else { context.fillStyle = PALETTE.muted; text('LOCKED', e.x, e.y - 26, 12, PALETTE.muted, 'center'); }
+    }
     // Loot: glowing gold bars and diamonds.
     for (const r of state.relics) {
       if (r.taken) continue;
@@ -281,6 +292,9 @@ export function createRenderer(canvas) {
     context.strokeStyle = PALETTE.muted; context.lineWidth = 1; context.strokeRect(barX, barY, barW, barH);
     plain(`♥ ${state.lives}   ● ${state.pebbles} coins   ⚡ EMP ${state.empCharges}${state.empTimer > 0 ? ' — cameras blind ' + state.empTimer.toFixed(0) + 's' : ''}   ☁ smoke ${state.smokeCharges}`, 24, 48, 16, PALETTE.muted, 'left');
     plain(state.level.def.name + ' — grab every loot, dodge guards and cameras, reach the getaway exit', FIELD.width / 2, 48, 15, PALETTE.muted, 'center');
+    if (state.lockdown) {
+      text(`LOCKDOWN — exit sealed for ${Math.ceil(state.lockdownTimer)}s — break line of sight!`, FIELD.width / 2, 78, 18, '#ff6b5e', 'center');
+    }
   }
 
   function drawTitleBanner(title, lines, prompt) {
