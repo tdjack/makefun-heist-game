@@ -325,7 +325,7 @@ export function createRenderer(canvas) {
     drawCrackRing(state);
     if (screen === SCREEN_TITLE) {
       drawTitleBanner('MIDNIGHT VAULT', [
-        'One thief. Three vaults. Crack every safe, then reach the getaway exit.',
+        'One thief. Four vaults. Crack every safe, then reach the getaway exit.',
         'WASD / arrows to move · Shift to sneak · Click to throw a coin · E for EMP · Q for smoke',
         'Dodge guard cones, camera cones and laser beams. Stand still by a safe to crack it.',
       ], 'Press Space or click to start the heist');
