@@ -5,7 +5,7 @@
 // (with &seed=N) stages that scene instead of running the loop, paints
 // it twice and sets window.__shotReady for a screenshot.
 import { BEST_KEY, FIELD, STEP } from './config.js';
-import { createWorld, EVENT_CAUGHT, EVENT_EMP, EVENT_LASER, EVENT_LEVEL, EVENT_PEBBLE, EVENT_RELIC, EVENT_SPOTTED, EVENT_WIN } from './world.js';
+import { createWorld, EVENT_CAUGHT, EVENT_EMP, EVENT_LASER, EVENT_LEVEL, EVENT_PEBBLE, EVENT_RELIC, EVENT_SMOKE, EVENT_SPOTTED, EVENT_WIN } from './world.js';
 import { ACTION_CONFIRM, ACTION_PAUSE, createInput } from './input.js';
 import { createAudio } from './audio.js';
 import { createRenderer, SCREEN_LEVEL, SCREEN_OVER, SCREEN_PAUSED, SCREEN_PLAY, SCREEN_TITLE, SCREEN_WIN } from './render.js';
@@ -91,9 +91,11 @@ function runGame() {
       pebble = { x: (click.clientX - ox) / scale, y: (click.clientY - oy) / scale };
     }
     const emp = input.takeEmp();
-    const events = world.step(STEP, { dx: dir.dx, dy: dir.dy, sneak: dir.sneak, pebble, emp });
+    const smoke = input.takeSmoke();
+    const events = world.step(STEP, { dx: dir.dx, dy: dir.dy, sneak: dir.sneak, pebble, emp, smoke });
     if (events & EVENT_RELIC) { audio.relic(); announce('Safe cracked. Loot grabbed.'); }
     if (events & EVENT_EMP) { audio.pebble(); announce('EMP fired. Cameras blind for six seconds.'); }
+    if (events & EVENT_SMOKE) { audio.pebble(); announce('Smoke bomb dropped. You are hidden inside the cloud.'); }
     if (events & EVENT_LASER) { audio.spotted(); announce('Laser tripped! Get out of the beam!'); }
     if (events & EVENT_PEBBLE) { audio.pebble(); announce('Coin thrown. A guard goes to look.'); }
     if (events & EVENT_SPOTTED) { audio.spotted(); announce('Spotted! Alarm! Break line of sight!'); }

@@ -14,6 +14,7 @@ export function stageShot(name, world) {
     s.player.x = 560; s.player.y = 300; s.player.sneaking = true;
     s.relics[0].taken = true; s.score = 100; s.detection = 46;
     s.crackTarget = s.relics[1]; s.crackProgress = 0.8;
+    s.smokes = [{ x: 640, y: 420, timer: 4.2, seed: 1.3 }];
     s.guards[0].x = 620; s.guards[0].y = 180; s.guards[0].facing = Math.PI / 2;
     s.guards[1].x = 340; s.guards[1].y = 460; s.guards[1].facing = 0;
     s.guards[2].x = 1020; s.guards[2].y = 300; s.guards[2].facing = Math.PI;

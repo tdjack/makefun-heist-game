@@ -14,6 +14,7 @@ export const EVENT_WIN = 16;
 export const EVENT_PEBBLE = 32;
 export const EVENT_EMP = 64;
 export const EVENT_LASER = 128;
+export const EVENT_SMOKE = 256;
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function dist(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
@@ -35,6 +36,8 @@ export function createWorld() {
     relics: [],
     empCharges: 2,
     empTimer: 0,
+    smokeCharges: 2,
+    smokes: [],
     crackTarget: null,
     crackProgress: 0,
     exit: { x: 0, y: 0 },
@@ -75,6 +78,8 @@ export function createWorld() {
     }));
     state.empCharges = 2;
     state.empTimer = 0;
+    state.smokeCharges = 2;
+    state.smokes = [];
     state.crackTarget = null;
     state.crackProgress = 0;
     state.guards = def.guards.map((g) => ({
@@ -133,6 +138,7 @@ export function createWorld() {
 
   function guardSees(guard) {
     const p = state.player;
+    if (playerInSmoke()) return { seen: false, rate: 0 };
     const d = dist(guard.x, guard.y, p.x, p.y);
     const range = tileKindAt(p.x, p.y) === 'lamp' ? GUARD.coneRangeLit : GUARD.coneRange;
     if (d > range) return { seen: false, rate: 0 };
@@ -149,6 +155,7 @@ export function createWorld() {
   // It cannot chase, but it fills the alarm meter just like a guard.
   function cameraSees(cam) {
     const p = state.player;
+    if (playerInSmoke()) return { seen: false, rate: 0 };
     const d = dist(cam.x, cam.y, p.x, p.y);
     if (d > CAMERA.coneRange) return { seen: false, rate: 0 };
     const toPlayer = Math.atan2(p.y - cam.y, p.x - cam.x);
@@ -183,6 +190,33 @@ export function createWorld() {
     state.empTimer = 6;
     for (const cam of state.cameras) cam.seeing = false;
     return true;
+  }
+
+  // Smoke bomb: a grey cloud that hides the thief from every cone.
+  // Guards and cameras cannot see through it, and a guard that loses
+  // sight inside smoke gives up the chase faster than in the open.
+  function dropSmoke() {
+    if (state.smokeCharges <= 0) return false;
+    state.smokeCharges -= 1;
+    state.smokes.push({
+      x: state.player.x,
+      y: state.player.y,
+      timer: 5,
+      seed: state.elapsed,
+    });
+    return true;
+  }
+
+  function playerInSmoke() {
+    for (const cloud of state.smokes) {
+      if (dist(state.player.x, state.player.y, cloud.x, cloud.y) < 78) return true;
+    }
+    return false;
+  }
+
+  function updateSmokes(dt) {
+    for (const cloud of state.smokes) cloud.timer -= dt;
+    state.smokes = state.smokes.filter((cloud) => cloud.timer > 0);
   }
 
   // Cracking a safe: stand beside a loot stash and hold still for 1.4
@@ -254,6 +288,10 @@ export function createWorld() {
     // EMP: the thief's one gadget. Press E and every camera goes blind.
     if (input.emp && fireEmp()) events |= EVENT_EMP;
     if (state.empTimer > 0) state.empTimer = Math.max(0, state.empTimer - dt);
+
+    // Smoke bomb: press Q and vanish inside a grey cloud for five seconds.
+    if (input.smoke && dropSmoke()) events |= EVENT_SMOKE;
+    updateSmokes(dt);
 
     // Laser tripwires: a live beam the thief touches trips the alarm.
     for (const beam of state.lasers) {

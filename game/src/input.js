@@ -16,6 +16,7 @@ export function createInput(target) {
   let actions = 0;
   let click = null;
   let empQueued = false;
+  let smokeQueued = false;
 
   window.addEventListener('keydown', (event) => {
     if (LEFT.has(event.code) || RIGHT.has(event.code) || UP.has(event.code) || DOWN.has(event.code)) {
@@ -24,6 +25,8 @@ export function createInput(target) {
       keys.add(event.code);
     } else if (event.code === 'KeyE') {
       if (!event.repeat) empQueued = true;
+    } else if (event.code === 'KeyQ') {
+      if (!event.repeat) smokeQueued = true;
     } else if (CONFIRM.has(event.code)) {
       if (!event.repeat) actions |= ACTION_CONFIRM;
     } else if (PAUSE.has(event.code)) {
@@ -49,6 +52,7 @@ export function createInput(target) {
     },
     takeClick() { const c = click; click = null; return c; },
     takeEmp() { const e = empQueued; empQueued = false; return e; },
+    takeSmoke() { const q = smokeQueued; smokeQueued = false; return q; },
     takeActions() { const taken = actions; actions = 0; return taken; },
   };
 }

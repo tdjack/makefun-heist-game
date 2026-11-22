@@ -150,6 +150,35 @@ export function createRenderer(canvas) {
     }
   }
 
+  function drawSmoke(state) {
+    // Smoke bombs: soft grey clouds that billow and fade as they age.
+    // The thief inside one is invisible to every guard and camera.
+    for (const cloud of state.smokes || []) {
+      const age = 5 - cloud.timer;
+      const alpha = cloud.timer > 1 ? 0.55 : cloud.timer * 0.5;
+      const wobble = Math.sin(Date.now() / 240 + cloud.seed * 3) * 6;
+      for (const puff of [
+        { dx: -26 + wobble, dy: -8, r: 30 },
+        { dx: 10, dy: 14 - wobble, r: 34 },
+        { dx: 28 + wobble, dy: -12, r: 26 },
+        { dx: -6, dy: -22, r: 24 },
+        { dx: 18, dy: 22, r: 22 },
+      ]) {
+        const g = context.createRadialGradient(
+          cloud.x + puff.dx, cloud.y + puff.dy, 2,
+          cloud.x + puff.dx, cloud.y + puff.dy, puff.r,
+        );
+        g.addColorStop(0, `rgba(180,190,205,${alpha})`);
+        g.addColorStop(1, 'rgba(180,190,205,0)');
+        context.fillStyle = g;
+        context.beginPath();
+        context.arc(cloud.x + puff.dx, cloud.y + puff.dy, puff.r, 0, Math.PI * 2);
+        context.fill();
+      }
+      if (cloud.timer > 4.4) text('SMOKE', cloud.x, cloud.y - 44, 12, '#c8d2de', 'center');
+    }
+  }
+
   function drawCrackRing(state) {
     // Safe-cracking progress: a gold ring closing around the loot stash.
     if (!state.crackTarget) return;
@@ -250,7 +279,7 @@ export function createRenderer(canvas) {
     context.fillStyle = '#0d1320'; context.fillRect(barX, barY, barW, barH);
     context.fillStyle = det > 60 ? PALETTE.danger : PALETTE.gold; context.fillRect(barX, barY, barW * (det / 100), barH);
     context.strokeStyle = PALETTE.muted; context.lineWidth = 1; context.strokeRect(barX, barY, barW, barH);
-    plain(`♥ ${state.lives}   ● ${state.pebbles} coins   ⚡ EMP ${state.empCharges}${state.empTimer > 0 ? ' — cameras blind ' + state.empTimer.toFixed(0) + 's' : ''}`, 24, 48, 16, PALETTE.muted, 'left');
+    plain(`♥ ${state.lives}   ● ${state.pebbles} coins   ⚡ EMP ${state.empCharges}${state.empTimer > 0 ? ' — cameras blind ' + state.empTimer.toFixed(0) + 's' : ''}   ☁ smoke ${state.smokeCharges}`, 24, 48, 16, PALETTE.muted, 'left');
     plain(state.level.def.name + ' — grab every loot, dodge guards and cameras, reach the getaway exit', FIELD.width / 2, 48, 15, PALETTE.muted, 'center');
   }
 
@@ -291,12 +320,13 @@ export function createRenderer(canvas) {
     drawFloor(state);
     drawLasers(state);
     drawCones(state, world);
+    drawSmoke(state);
     drawActors(state);
     drawCrackRing(state);
     if (screen === SCREEN_TITLE) {
       drawTitleBanner('MIDNIGHT VAULT', [
         'One thief. Three vaults. Crack every safe, then reach the getaway exit.',
-        'WASD / arrows to move · Shift to sneak · Click to throw a coin · E for EMP',
+        'WASD / arrows to move · Shift to sneak · Click to throw a coin · E for EMP · Q for smoke',
         'Dodge guard cones, camera cones and laser beams. Stand still by a safe to crack it.',
       ], 'Press Space or click to start the heist');
       return;
